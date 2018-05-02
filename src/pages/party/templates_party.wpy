@@ -1,0 +1,270 @@
+<template>
+  <view class="nav">
+    <view class="nav_btn font_28 {{nav_active ? 'nav_active' : ''}} flo_r" @tap="navlist('ALL')" wx:if="{{list.length != 0}}">编辑</view>
+    <view class="nav_btn font_28 nav_active flo_r" @tap="goto('/pages/party/edit_party')" wx:else>去创建</view>
+  </view>
+  <bolck wx:if="{{list.length != 0}}">
+    <view class="members" wx:for="{{list}}" wx:key="*this">
+      <view @tap="addtemp({{item.id}})">
+        <image src="{{item.user.wechat.avatar}}"  mode="aspectFit" class="member_image flo_l"></image>
+        <view class="font_32 bold flo_r" style="width: 20%">
+          <button class="btn-blue flo_r" style="padding:0rpx 20rpx !important;" size="mini" wx:if="{{edit}}" >选择</button>
+          <button class="btn-blue_r flo_r" style="padding:0rpx 20rpx !important;" size="mini" wx:else  @tap.stop="deletetemp({{item.id}})">删除</button>
+
+          <!--<view style="margin-left: 80rpx">-->
+          <!--<image src="{{delete}}"  mode="aspectFit" class="flo_l" style="width: 60rpx;height: 60rpx"></image>-->
+          <!--</view>-->
+        </view>
+        <view class="font_32 bold" style="width: 80%">{{item.title}}</view>
+        <view class="font_32">{{item.address}}  {{item.address_detail}}</view>
+        <view class="clearfloat"></view>
+        <image src="../../images/tabbars/query.png"  mode="aspectFit" class="member_icon flo_l" wx:if="{{item.is_possible == '1'}}"></image>
+      </view>
+    </view>
+  </bolck>
+  <bolck wx:else>
+    <view class="tem_message font_32">
+      暂无模板,先
+      <span style="color: #11ace6" @tap="goto('/pages/party/edit_party')" >发起聚会</span>
+    </view>
+  </bolck>
+
+</template>
+<script>
+
+  import wepy from 'wepy'
+  import { service } from '../../config.js'
+  import base from '../../mixins/base'
+  import http from '../../mixins/http'
+  import user from '../../mixins/user'
+
+  export default class templatesParty extends wepy.page {
+    mixins = [base, http, user]
+    config = {
+      navigationBarTitleText: '聚会模板选择',
+      enablePullDownRefresh: true
+    }
+    data = {
+      noMoreList: false,
+      loading: false,
+      list: [],
+      party_id: 0,
+      delete: '../../images/tabbars/delete.png',
+      nav_active_joined: true,
+      nav_active_finished: false,
+      nav_active_browsed: false,
+      nav_active: false,
+      edit: true
+    }
+
+    onReady() {
+    }
+    onShareAppMessage(res) {
+      return this.$parent.onShareAppMessage(this.config.navigationBarTitleText)
+    }
+
+    onShow() {
+      this.$parent.getTracker(this.$root.$name, this.config.navigationBarTitleText)
+    }
+
+    onLoad(e) {
+      this.initPageData(this.party_id)
+      if (e.party_id) {
+        this.party_id = e.party_id
+        this.$apply()
+        this.initPageData(this.party_id)
+      }
+    }
+
+    onPullDownRefresh() {
+      this.noMoreList = false
+      this.initPageData(this.party_id)
+    }
+
+    onReachBottom() {
+      setTimeout(() => {
+        this.$apply()
+      }, 200)
+    }
+    // 初始化页面数据
+    initPageData(partyId) {
+      this.$get({
+        url: service.templates
+      }, {
+        success: ({code, data}) => {
+          this.list = data.data
+          this.$apply()
+//          debugger
+        },
+        fail: ({code, data}) => {},
+        complete: () => { this.loading = false }
+      })
+    }
+    methods = {
+      radioChange (e) {
+        console.log('radio发生change事件，携带value值为：', e.detail.value)
+      },
+      addtemp(tempId) {
+        let data = {
+          temp_id: tempId
+        }
+        this.$post({
+          url: service.parties,
+          data: data
+        }, {
+          success: ({code, data}) => {
+            console.log(data.id)
+            wx.navigateTo({url: '/pages/party/edit_party?party_id=' + data.id})
+            this.noMoreList = false
+          },
+          fail: ({code, data}) => {
+            // 失败了什么也不做
+          },
+          complete: () => {
+            this.loading = false
+          }
+        })
+      },
+      deletetemp(tempId) {
+        wx.showModal({
+          title: '提示',
+          content: '是否确认删除该模板？',
+          success: (res) => {
+            if (res.confirm) {
+              this.$delete({
+                url: service.templates + '/' + tempId
+              }, {
+                success: ({code, data}) => {
+                  wx.showToast({
+                    title: '删除成功',
+                    image: '../../images/tabbars/succeed.png',
+                    duration: 1500
+                  })
+                  this.initPageData(this.party_id)
+                },
+                fail: ({code, data}) => {
+                  // 失败了什么也不做
+                },
+                complete: () => {
+                  this.loading = false
+                }
+              })
+            } else if (res.cancel) {
+              console.log('用户点击取消')
+            }
+          }
+        })
+      },
+      navlist(type) {
+        let that = this
+        if (that.edit) {
+          that.nav_active = true
+          that.edit = false
+          that.$apply()
+        } else {
+          that.nav_active = false
+          that.edit = true
+          that.$apply()
+        }
+      },
+      typing(index, type, e) {
+        if (type == 'title') {
+          this.statiob_list[index].title = e.detail.value
+        } else if (type == 'need_num') {
+          this.statiob_list[index].need_num = e.detail.value
+        }
+        this.$apply()
+      },
+      goto(url) {
+        wx.navigateTo({url: url})
+      }
+    }
+
+    components = {
+    }
+  }
+</script>
+
+<style lang="less">
+  @import "../../styles/custom/step.less";
+  @import "../../styles/custom/fn.less";
+  page{
+    background: white;
+  }
+  .weui-input{
+    padding-left: 12rpx;
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .border_b{
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .page-index{
+    /*padding: 22rpx;*/
+    min-height: 700rpx;
+  }
+  .weui-cell{
+    /*position: inherit;*/
+    padding: 22rpx 50rpx;
+    background:white;
+    /*border-bottom: 1rpx solid #d5d5d5;*/
+  }
+  .weui-message{
+    margin-bottom: 0rpx;
+  }
+  .nav{
+    height: 60rpx;
+    background: white;
+    padding: 12rpx 22rpx;
+    border-bottom: 12rpx solid #d9d9d9;
+  }
+  .nav_btn{
+    padding: 1rpx 32rpx;
+    height:90%;
+    /*background: #F9E704;*/
+    text-align: center;
+    margin-left: 22rpx;
+    /*color: #666666;*/
+    border: 1rpx solid #dedede;
+    border-radius: 32rpx;
+    line-height: 54rpx;
+    box-shadow: 1rpx 1rpx 12rpx #e3e3e3;
+  }
+
+  .nav_active {
+    background: #F9E704;
+    animation: 1s opacity2 ;
+  }
+  @keyframes opacity2{
+    0%{opacity:0}
+    100%{opacity:1;}
+  }
+  .members{
+    /*background: red;*/
+    position: relative;
+    padding:12rpx 32rpx;
+    margin: 22rpx;
+    border-radius: 6rpx;
+    box-shadow: 1rpx 1rpx 12rpx #dedede;
+  }
+  .member_image{
+    width: 120rpx;
+    height: 120rpx;
+    margin-top: 12rpx;
+    margin-right: 32rpx;
+  }
+  .member_icon{
+    width: 60rpx;
+    height: 60rpx;
+    position: absolute;
+    right: 12rpx;
+    top: 12rpx;
+  }
+  .tem_message{
+    margin: 22rpx;
+    box-shadow: 1rpx 1rpx 12rpx #dedede;
+    padding: 12rpx;
+    color: #666666;
+    text-align: center;
+  }
+
+</style>

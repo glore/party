@@ -1,0 +1,421 @@
+
+
+
+
+
+
+
+
+
+<template>
+  <view class="stepInfo">
+    <ul>
+      <li></li>
+      <li></li>
+    </ul>
+    <view class="stepIco stepIco1 stepactive">1
+      <view class="stepText">填写聚会信息</view>
+    </view>
+    <view class="stepIco stepIco2">2
+      <view class="stepText">添加服侍岗位</view>
+    </view>
+    <view class="stepIco stepIco3">3
+      <view class="stepText">发布聚会</view>
+    </view>
+  </view>
+  <view style="height: 100rpx"></view>
+  <view class="page-index">
+    <view class="weui-cell reset-cell-block">
+      <view class="weui-media-box__title h3 color-666">聚会名称：</view>
+    </view>
+    <view class="weui-cell">
+      <view class="weui-cell__bd h4">
+        <input @input="typing('title')" class="weui-input" value="{{title}}" placeholder="聚会、读书会、运动、出游..."/>
+      </view>
+    </view>
+    <view class="weui-cell reset-cell-block">
+      <view class="weui-media-box__title h3 color-666">聚会费用：</view>
+    </view>
+    <view class="weui-cell">
+      <view class="weui-cell__bd h4" style="position: relative">
+        <input @input="typing('fee')" class="weui-input" type="digit" value="{{fee}}" placeholder="费用..." style="padding-left: 42rpx;"/>
+        <view style="position: absolute;left: 12rpx;top: 10rpx;font-size: 32rpx;color: #666666" class="bold">￥</view>
+      </view>
+    </view>
+    <view class="weui-cell reset-cell-block">
+      <view class="weui-media-box__title h3 color-666">聚会时间：</view>
+    </view>
+    <view class="weui-cell">
+      <view class="weui-cell__bd h4">
+        <view class="section flo_l" style="margin-right: 2%;width: 250rpx;">
+          <picker mode="date" value="{{date}}"  @change="typing('date')">
+            <view class="picker">
+              <input class="weui-input" disabled value="{{date}}" placeholder="日期选择..."/>
+            </view>
+          </picker>
+        </view>
+        <view class="section flo_r" style="width: 338rpx;">
+          <!--<picker mode="time" value="{{time}}"  @change="typing('time')">-->
+            <!--<view class="picker">-->
+              <!--<input class="weui-input" disabled value="{{time}}" placeholder="时间及时长选择..."/>-->
+            <!--</view>-->
+          <!--</picker>-->
+          <picker mode="multiSelector" @change="bindMultiPickerChange"   range="{{time_duration}}" value="{{multiIndex}}">
+            <view class="picker">
+              <!--当前选择：{{multiArray[0][multiIndex[0]]}}，{{multiArray[1][multiIndex[1]]}}，{{multiArray[2][multiIndex[2]]}}-->
+              <view class="weui-input" style="padding:0 12rpx;">
+                <view class="flo_l">
+                  {{time_duration[0][timeIndex]}}
+                </view>
+                <view class="flo_r">
+                  时长：
+                  <span style="color: orange">{{time_duration[1][durationIndex]}}小时</span>
+                </view>
+              </view>
+
+              <!--<input class="weui-input" disabled value="{{time_duration[0][timeIndex]}},{{time_duration[1][durationIndex]}}" placeholder="时间及时长选择..."/>-->
+            </view>
+          </picker>
+        </view>
+        <!--<input @input="typing('name')" class="weui-input" value="{{name}}" placeholder="时间选择..."/>-->
+      </view>
+      <!--<view class="weui-cell__ft weui-cell__ft_in-access"></view>-->
+    </view>
+    <view class="weui-cell reset-cell-block">
+      <view class="weui-media-box__title h3 color-666">定位地点：</view>
+    </view>
+    <view class="weui-cell">
+      <view class="weui-cell__bd h4">
+        <input class="weui-input" @tap="choose" disabled value="{{address}}" placeholder="点击选取地点..."/>
+        <input class="weui-input"  value="{{address_detail}}" @input="typing('address_detail')" placeholder="地址补充说明"/>
+      </view>
+      <view class="weui-cell__ft" style="margin-top: -72rpx">
+        <image src="../../images/tabbars/address.png"  mode="aspectFit" class="imgicon" style="width: 60rpx; height: 60rpx;" ></image>
+      </view>
+    </view>
+    <view class="weui-cell reset-cell-block">
+      <view class="weui-media-box__title h3 color-666">备注：</view>
+    </view>
+    <view class="weui-cell">
+      <view class="weui-cell__bd h4">
+        <textarea  @input="typing('notes')"  value="{{notes}}" placeholder="聚会详细内容..."/>
+      </view>
+    </view>
+  </view>
+  <view style="width: 50%;margin:22rpx auto">
+    <form bindsubmit="formSubmit" report-submit>
+      <button formType="submit"  data-type="click"  @tap="next('/pages/party/edit_station')" class="weui-btn btn-blue">
+        下一步
+      </button>
+    </form>
+  </view>
+</template>
+
+<script>
+
+  import wepy from 'wepy'
+  import { service } from '../../config.js'
+  import base from '../../mixins/base'
+  import http from '../../mixins/http'
+  import user from '../../mixins/user'
+  import getFormId from '../../mixins/getFormId'
+
+  export default class editParty extends wepy.page {
+    mixins = [base, http, user, getFormId]
+    config = {
+      navigationBarTitleText: '发起聚会',
+      navigationBarTextStyle: 'black',
+      navigationBarBackgroundColor: '#fafffb',
+      enablePullDownRefresh: false
+    }
+    data = {
+      party_id: '',
+      noMoreList: false,
+      loading: false,
+      list: [],
+      page: 1,
+      date: '',
+      time: '00:30',
+      title: '',
+      address: '',
+      address_detail: '',
+      notes: '',
+      fee: 0.00,
+      longitude: '',
+      latitude: '',
+      partyData: {},
+      time_duration: [],
+      durationIndex: 0,
+      timeIndex: 0,
+      duration: '0.5',
+      multiIndex: [0, 0]
+    }
+    onLoad(e) {
+//      let that = this
+      this.pickerTime()
+      this.choose()
+      if (e.party_id) {
+        this.party_id = e.party_id
+        this.initPageData(this.party_id)
+      }
+    }
+    onShareAppMessage(res) {
+      return this.$parent.onShareAppMessage(this.config.navigationBarTitleText)
+    }
+
+    onShow() {
+      this.$parent.getTracker(this.$root.$name, this.config.navigationBarTitleText)
+    }
+
+    onPullDownRefresh() {
+      this.noMoreList = false
+    }
+
+    onReachBottom() {
+      setTimeout(() => {
+        this.$apply()
+      }, 200)
+    }
+
+    pickerTime() {
+      this.time_duration = []
+      let time = []
+      let duration = []
+      let hour = 0
+//      let hour_d = 0
+      for (let i = 0; i < 48; i++) {
+        let str = 0
+        str = 0.5 * (i + 1)
+        duration[i] = str
+      }
+      for (let j = 0; j < 48; j++) {
+        let str = ''
+        let min = ''
+        if (j % 2) {
+          min = '00'
+          hour = hour + 1
+        } else {
+          min = '30'
+        }
+        if (j < 19) {
+          str = '0' + hour + ':' + min
+        } else {
+          str = hour + ':' + min
+        }
+        time[j] = str
+      }
+      this.time_duration.push(time, duration)
+      this.$apply()
+      console.log(this.time_duration)
+    }
+
+    // 初始化页面数据
+    initPageData(partyId) {
+      let that = this
+      // 初始化参数
+      this.$get({
+        url: service.parties + '/' + partyId
+      }, {
+        success: ({code, data}) => {
+          let times = data.start_time.split(' ')
+          that.list = data
+          that.date = times[0]
+          that.time = times[1]
+          that.title = data.title
+          that.address = data.address
+          that.address_detail = data.address_detail
+          that.notes = data.notes
+          that.fee = data.fee
+          that.time_duration[0].forEach((item, index, arr) => {
+            if (that.time == that.time_duration[0][index]) {
+              console.log(index)
+              that.timeIndex = index
+              that.$apply()
+            }
+          })
+          that.time_duration[1].forEach((item, index, arr) => {
+            if (data.duration == that.time_duration[1][index]) {
+              console.log(index)
+              that.durationIndex = index
+              that.$apply()
+            }
+          })
+          that.multiIndex = [that.timeIndex, that.durationIndex]
+          that.$apply()
+        },
+        fail: ({code, data}) => {
+          // 失败了什么也不做
+        },
+        complete: () => {
+          this.loading = false
+        }
+      })
+    }
+
+    GotoParty(data) {
+      let that = this
+      if (this.loading || this.noMoreList) return
+      that.loading = true
+      console.log(service.parties)
+      if (this.party_id) {
+        console.log('修改')
+        this.$put({
+          url: service.parties + '/' + that.party_id,
+          data: data
+        }, {
+          success: ({code, data}) => {
+            console.log(data.id)
+            wx.navigateTo({url: '/pages/party/edit_station?party_id=' + data.id})
+            that.noMoreList = false
+          },
+          fail: ({code, data}) => {
+            // 失败了什么也不做
+          },
+          complete: () => {
+            this.loading = false
+          }
+        })
+      } else {
+        this.$post({
+          url: service.parties,
+          data: data
+        }, {
+          success: ({code, data}) => {
+            console.log(data.id)
+            wx.navigateTo({url: '/pages/party/edit_station?party_id=' + data.id})
+            this.noMoreList = false
+          },
+          fail: ({code, data}) => {
+            // 失败了什么也不做
+          },
+          complete: () => {
+            this.loading = false
+          }
+        })
+      }
+    }
+    choose() {
+      let that = this
+      wepy.getLocation({
+        altitude: true,
+        type: 'gcj02',
+        success: function (res) {
+          that.latitude = res.latitude
+          that.longitude = res.longitude
+          that.$apply()
+          console.log(res)
+          wepy.request({
+            url: 'https://apis.map.qq.com/ws/geocoder/v1/',
+            data: {
+              key: 'DQ3BZ-SWT3U-HUQV7-BBO3U-OU7WS-53FBV',
+              location: that.latitude + ',' + that.longitude
+            },
+            header: {
+              'content-type': 'application/json' // 默认值
+            },
+            success: function(res) {
+              console.log(res)
+              let result = res.data.result
+              that.address = result.formatted_addresses.recommend
+              that.$apply()
+              console.log(that.address)
+            }
+          })
+        },
+        fail: function () {
+          // fail
+        },
+        complete: function () {
+          // complete
+        }
+      })
+    }
+    methods = {
+      bindMultiPickerChange: function (e) {
+        console.log('picker发送选择改变，携带值为', e.detail.value)
+        let value = e.detail.value
+        this.durationIndex = value[1]
+        this.timeIndex = value[0]
+        this.time = this.time_duration[0][value[0]]
+        this.duration = this.time_duration[1][value[1]]
+        this.$apply()
+//        this.setData({
+//          multiIndex: e.detail.value
+//        })
+      },
+      goto(url) {
+        wx.navigateTo({url: url})
+      },
+      typing (type, e) {
+        if (this.isDefined(this[type])) {
+          this[type] = e.detail.value
+        }
+      },
+      next (url) {
+        this.partyData = {
+          start_time: this.date + ' ' + this.time,
+          duration: this.duration,
+          notes: this.notes,
+          title: this.title,
+          address: this.address,
+          address_detail: this.address_detail,
+          fee: this.fee,
+          location_longitude: this.longitude,
+          location_latitude: this.latitude,
+          form_id: this.formId
+        }
+        this.$apply()
+        console.log(this.partyData)
+        this.GotoParty(this.partyData)
+      },
+      choose() {
+        let that = this
+        wepy.chooseLocation({
+          success: function (res) {
+//            console.log(res,"location")
+//            that.address_detail = res.name
+            that.address = res.name
+//            that.address = res.address
+            that.latitude = res.latitude
+            that.longitude = res.longitude
+            that.$apply()
+          },
+          fail: function () {
+            // fail
+          },
+          complete: function () {
+            // complete
+          }
+        })
+      }
+    }
+
+    components = {
+    }
+  }
+</script>
+
+<style lang="less">
+  @import "../../styles/custom/step.less";
+  @import "../../styles/custom/fn.less";
+
+  .weui-input{
+    padding:0 22rpx;
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .border_b{
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .page-index{
+    padding: 22rpx;
+    background: white;
+  }
+  .weui-cell{
+    position: inherit;
+    padding: 8rpx 15rpx;
+  }
+  textarea{
+    width:100%;
+    height: 250rpx;
+  }
+</style>

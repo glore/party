@@ -1,0 +1,355 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<template>
+  <view class="stepInfo">
+    <ul>
+      <li class="stepactive"></li>
+      <li></li>
+    </ul>
+    <view class="stepIco stepIco1 stepactive" @tap="goto('/pages/party/edit_party')">1
+      <view class="stepText">填写聚会信息</view>
+    </view>
+    <view class="stepIco stepIco2 stepactive">2
+      <view class="stepText">添加服侍岗位</view>
+    </view>
+    <view class="stepIco stepIco3">3
+      <view class="stepText">发布聚会</view>
+    </view>
+  </view>
+  <view style="height: 100rpx"></view>
+  <view class="weui-message">
+    请添加服侍岗位，提供给报名者选择服侍岗位：
+  </view>
+  <view class="page-index">
+    <view class="weui-cell">
+      <view class="weui-cell__bd h4">
+        点击添加服侍岗位
+      </view>
+      <view class="weui-cell__ft {{icon_animation ? 'icon_animation' : ''}}" @tap="addStatiob">
+        <form bindsubmit="formSubmit" report-submit>
+          <button formType="submit" class="btn" data-type="click">
+            <image src="../../images/tabbars/add.png" mode="aspectFit" class="imgicon flo_l"></image>
+          </button>
+        </form>
+      </view>
+    </view>
+    <view class="weui-cell">
+      <view class="h4" style="width: 30%">
+        序号
+      </view>
+      <view class="h4" style="width: 42%">
+        岗位
+      </view>
+      <view class="h4" style="width: 33%">
+        人数
+      </view>
+    </view>
+    <view class="weui-cell" wx:for="{{statiob_list}}" wx:key="{{*this}}">
+      <view class="h4 text-center" style="width: 12%;margin-right: 12%">
+        {{index+1}}
+      </view>
+      <view class="h4" style="width: 95%;margin-right: 8%;">
+        <input @input="typing({{item.idv}},'title',{{item.num}})" class="weui-input text-center" value="{{item.title}}" placeholder="输入岗位名称"/>
+      </view>
+      <view class="h4" style="width: 80%;margin-right: 2%;">
+        <input @input="typing({{item.idv}},'need_num',{{item.num}})" @blur="Buffer({{item.idv}},{{item.num}})" type="number" class="weui-input text-center" value="{{item.need_num}}" placeholder="输入人数"/>
+      </view>
+      <view class="h4" style="width: 18%;padding: 22rpx;" @tap="deleteStatiob({{item.idv}},{{item}})">
+        <image src="{{item.icon_delete}}" mode="aspectFit" class="imgicon flo_l"></image>
+      </view>
+    </view>
+  </view>
+  <view style="width: 100%;padding:22rpx 0 ">
+    <button @tap="lastStep('/pages/party/edit_party?party_id={{party_id}}')" class="weui-btn btn-blue flo_l">上一步</button>
+    <form bindsubmit="formSubmit" report-submit>
+      <button formType="submit" @tap="servants" class="weui-btn btn-blue_r flo_l" data-type="click">
+        发布聚会
+      </button>
+    </form>
+  </view>
+</template>
+<script>
+
+  import wepy from 'wepy'
+  import { service } from '../../config.js'
+  import base from '../../mixins/base'
+  import http from '../../mixins/http'
+  import user from '../../mixins/user'
+  import getFormId from '../../mixins/getFormId'
+
+  export default class station extends wepy.page {
+    mixins = [base, http, user, getFormId]
+    config = {
+      navigationBarTitleText: '添加服侍岗位',
+      navigationBarTextStyle: 'black',
+      navigationBarBackgroundColor: '#fafffb',
+      enablePullDownRefresh: false
+    }
+    data = {
+      noMoreList: false,
+      loading: false,
+      list: [],
+      party_id: 0,
+      statiob: {
+        index: 0,
+        title: '',
+        need_num: '',
+        icon_delete: '../../images/tabbars/minus.png'
+      },
+      statiob_list: [],
+      icon_animation: false
+    }
+
+    onReady() {
+    }
+    onShareAppMessage(res) {
+      return this.$parent.onShareAppMessage(this.config.navigationBarTitleText)
+    }
+
+    onShow() {
+      this.$parent.getTracker(this.$root.$name, this.config.navigationBarTitleText)
+    }
+
+    onLoad(e) {
+      if (e.party_id) {
+        this.party_id = e.party_id
+        this.$apply()
+        this.initPageData(this.party_id)
+      }
+
+    }
+
+    onPullDownRefresh() {
+      this.noMoreList = false
+      this.initPageData()
+    }
+
+    onReachBottom() {
+      setTimeout(() => {
+        this.$apply()
+      }, 200)
+    }
+    // 初始化页面数据
+    initPageData(partyId) {
+      this.$get({
+        url: service.parties + '/' + partyId + '/servants',
+        data: {}
+      }, {
+        success: ({code, data}) => {
+          let that = this
+          that.statiob_list = data
+          that.statiob_list.forEach(function (item, index, arr) {
+            arr[index].icon_delete = '../../images/tabbars/minus.png'
+            arr[index].idv = index
+          })
+          if (that.statiob_list.length == 0) {
+            wx.getStorage({
+              key: 'statiob_list',
+              success: function(res) {
+                that.statiob_list = res.data
+                that.$apply()
+//              debugger
+              }
+            })
+          }
+          console.log(that.statiob_list)
+          that.$apply()
+        },
+        fail: ({code, data}) => {},
+        complete: () => { this.loading = false }
+      })
+    }
+    methods = {
+      Buffer(index, num, e) {
+//        if (e.detail.value < num && num !== '0') {
+//          this.statiob_list[index].need_num = num
+//          this.$apply()
+//          this.$alert('温馨提示', '已有' + num + '人报名,请勿低于' + num + '人')
+//          console.log(this.statiob_list)
+//          debugger
+//        }
+      },
+      lastStep(url) {
+        wx.navigateTo({url: url})
+        wx.setStorage({
+          key: "statiob_list",
+          data: this.statiob_list
+        })
+      },
+      typing(index, type, num, e) {
+        if (type == 'title') {
+          this.statiob_list[index].title = e.detail.value
+        } else if (type == 'need_num') {
+          if (e.detail.value < num && num !== '0') {
+            this.statiob_list[index].need_num = num
+            this.$apply()
+            this.$alert('温馨提示', '已有' + num + '人报名,请勿低于' + num + '人')
+          } else {
+            this.statiob_list[index].need_num = e.detail.value
+          }
+        }
+        this.$apply()
+        console.log(this.statiob_list)
+//        if (this.isDefined(this[type])) {
+//          this[type] = e.detail.value
+//        }
+      },
+      goto(url) {
+        wx.navigateTo({url: url})
+      },
+      addStatiob() {
+        this.icon_animation = true
+        setTimeout(() => {
+          this.icon_animation = false
+          this.$apply()
+        }, 800)
+        let statiob = {
+          idv: 0,
+          title: '',
+          id: 0,
+          need_num: '',
+          num: 0,
+          icon_delete: '../../images/tabbars/minus.png'
+        }
+        statiob.idv = this.statiob_list.length
+        this.statiob_list.push(statiob)
+        console.log(this.statiob_list)
+        this.$apply()
+      },
+      deleteStatiob(id, item) {
+        console.log(id, item)
+        let self = this
+        if (item.num && item.num !== '0') {
+          return this.$alert('温馨提示', '已有' + item.num + '人报名，请勿删除！')
+        } else {
+          self.statiob_list.splice(id, 1)
+          self.$apply()
+          if (self.statiob_list.length < 1) {
+            self.statiob_list = []
+          } else if (self.statiob_list) {
+            for (let i = 0; i < self.statiob_list.length; i++) {
+              self.statiob_list[i].idv = i
+            }
+          }
+          console.log(self.statiob_list)
+        }
+      },
+      servants() {
+        let that = this
+        this.$post({
+          url: service.parties + '/' + that.party_id + '/servants',
+          data: {
+            servant_arr: that.statiob_list,
+            formId: that.formId
+          }
+        }, {
+          success: ({code, data}) => {
+            console.log(data.id)
+            wx.removeStorage({key: 'statiob_list'})
+            wx.navigateTo({url: '/pages/party/start_party?party_id=' + that.party_id})
+          },
+          fail: ({code, data}) => {
+            // 失败了什么也不做
+          },
+          complete: () => {
+            this.loading = false
+          }
+        })
+      }
+    }
+
+    components = {
+    }
+  }
+</script>
+
+<style lang="less">
+  @import "../../styles/custom/step.less";
+  @import "../../styles/custom/fn.less";
+
+  .weui-input{
+    padding-left: 12rpx;
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .border_b{
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .page-index{
+    /*padding: 22rpx;*/
+    min-height: 700rpx;
+  }
+  .weui-cell{
+    /*position: inherit;*/
+    padding: 22rpx 50rpx;
+    background:white;
+    /*border-bottom: 1rpx solid #d5d5d5;*/
+  }
+  textarea{
+    width:100%;
+    height: 250rpx;
+  }
+  .weui-btn{
+    /*width: 28%;*/
+    margin-left: 150rpx;
+  }
+  .icon_animation{
+    animation: 800ms shrinkfresh 1;
+    animation-fill-mode:forwards;
+  }
+  @keyframes shrinkfresh {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .weui-cell__ft{padding: 12rpx}
+</style>

@@ -1,0 +1,692 @@
+<template>
+  <view style="height: 50rpx"></view>
+  <view class="page-index">
+    <view class="party">
+      <view class="font_26 message flo_l" wx:if="{{list.is_deadline == 1}}" style="background: red">已截止报名</view>
+      <view class="font_26 message flo_l" wx:else>正在报名</view>
+      <view class="user-message">
+        <image src="{{user.wechat.avatar}}"  mode="aspectFit" class="user_image"></image>
+        <view class="font_26 text-center">{{user.name}}</view>
+      </view>
+      <view class="clearfloat"></view>
+      <view style="width: 100%" class="font_32 bold">{{list.title}}</view>
+      <!--<view style="width: 100%" class="font_28">{{list.start_time}}</view>-->
+      <view style="width: 100%" class="font_28 flo_l">
+        <view class="flo_l">时间：{{list.start_time}}</view>
+        <view class="orange flo_l" style="margin-left: 22rpx;">{{list.duration}}小时</view>
+      </view>
+      <!--<view class="font_28"> 时长：<span class="orange">{{list.duration}}小时</span></view>-->
+      <view style="width: 100%" class="font_28" @tap="goadderss({{list.location_latitude}},{{list.location_longitude}})">
+        地址：{{list.address}}  {{list.address_detail}}
+        <image src="../../images/tabbars/address.png"  mode="aspectFit" class="imgicon" style="margin-bottom: 8rpx;width: 60rpx;height: 60rpx"></image>
+      </view>
+      <!--<view style="width: 100%;padding-eleft: 80rpx;" class="font_28">-->
+        <!--{{list.address_detail}}-->
+        <!--&lt;!&ndash;<image src="../../images/tabbars/address.png"  mode="aspectFit" class="imgicon" style="margin-bottom: 8rpx"></image>&ndash;&gt;-->
+      <!--</view>-->
+      <view style="width: 100%" class="font_28">
+        备注：{{notes}}
+        <block wx:if="{{list.notes !== list.short_notes}}">
+          <span>...</span>
+          <text @tap="unfold" class="notes_text">{{text}}</text>
+        </block>
+      </view>
+      <view wx:if="{{list.is_cancel == '1'}}">
+        <image src="../../images/tabbars/quxiao.png"  mode="aspectFit" style="margin-bottom: 8rpx;position:absolute;right: 0;bottom:10rpx;width: 220rpx;height: 220rpx;"></image>s
+      </view>
+    </view>
+    <view class="member">
+      <view wx:for="{{list.members}}"  wx:key="*this" class="flo_l" wx:for-item="itemName" style="position:relative;">
+        <image src="{{itemName.avatar}}" mode="aspectFit" class="party_image flo_l" style="width: 82rpx;height: 82rpx;margin-bottom: 12rpx;"></image>
+        <image src="../../images/tabbars/query.png" mode="aspectFit"  wx:if="{{itemName.is_possible == '1'}}" style="width: 42rpx;height: 42rpx;position: absolute;right: 6rpx; top: -2rpx;"></image>
+        <!--<view class="red bold flo_l" style="position: absolute;right: 12rpx; top: -12rpx;border: 2rpx solid red;width: 36rpx;height: 36rpx;border-radius: 50%;text-align: center;line-height: 36rpx;">?</view>-->
+      </view>
+      <button open-type="share" class="btn flo_l" style="width: 120rpx;height: 120rpx;">
+        <image src="../../images/tabbars/addmember.png"   mode="aspectFit" class="party_image" style="width: 48rpx;height: 48rpx;padding: 12rpx;" ></image>
+      </button>
+      <view class="flo_r font_32" style="margin-top: 32rpx">{{members.length}}人</view>
+      <view class="clearfloat"></view>
+    </view>
+    <bolck wx:if="{{showmember}}">
+      <view class="member" wx:if="{{list.is_admin}}">
+        <view  class="flo_l setting text-center" @tap="goto('/pages/party/statistics_party?party_id={{party_id}}&title={{list.title}}')">
+          <view class="setting_box">
+            <image src="../../images/tabbars/statistics.png"  mode="aspectFit" class="party_setting"></image>
+          </view>
+          <view class="font_26 text-center">统计</view>
+        </view>
+        <view  class="flo_l setting text-center" @tap="fetch" >
+          <view class="setting_box" style="background: #c1c1c1">
+            <image src="../../images/tabbars/money.png"  mode="aspectFit" class="party_setting"></image>
+          </view>
+          <view class="font_26 text-center">提现</view>
+        </view>
+        <view  class="flo_l setting text-center" @tap="goto('/pages/party/edit_party?party_id={{party_id}}')">
+          <!--<view  class="flo_l setting text-center" @tap="fetch">-->
+          <view class="setting_box">
+            <image src="../../images/tabbars/edit.png"  mode="aspectFit" class="party_setting"></image>
+          </view>
+          <view class="font_26 text-center">修改</view>
+        </view>
+        <view  class="flo_l setting text-center"  @tap="saveTemplates">
+          <form bindsubmit="formSubmit" report-submit>
+            <button formType="submit"  data-type="click" class="btn">
+              <view class="setting_box">
+                <image src="../../images/tabbars/save.png"  mode="aspectFit" class="party_setting"></image>
+              </view>
+            </button>
+          </form>
+          <view class="font_26">保存模板</view>
+        </view>
+        <view  class="flo_l setting text-center" @tap="setting({{list.is_deadline}}, {{list.is_cancel}})">
+          <form bindsubmit="formSubmit" report-submit>
+            <button formType="submit"  data-type="click" class="btn">
+              <view class="setting_box">
+                <image src="../../images/tabbars/setting.png"  mode="aspectFit" class="party_setting"></image>
+              </view>
+            </button>
+            <view class="font_26 text-center">设置</view>
+          </form>
+        </view>
+        <view class="clearfloat"></view>
+      </view>
+    </bolck>
+    <!--<view class="weui-cell">-->
+      <!--<view style="width: 100%">{{list.start_time}}</view>-->
+    <!--</view>-->
+  </view>
+  <view style="height: 100rpx;"></view>
+  <view style="width: 100%;" class="fixed_bot">
+    <form bindsubmit="formSubmit" report-submit>
+      <button formType="submit"  data-type="click"  @tap="sign('join')"  class="weui-btn btn-blue flo_l" wx:if="{{!list.is_join}}">
+        报名参加
+      </button>
+      <button formType="submit"  data-type="click"  @tap="sign()" class="weui-btn btn-blue flo_l" wx:else>
+      取消报名
+      </button>
+    </form>
+    <button open-type="share" class="weui-btn btn-blue_r flo_l">分享给好友</button>
+  </view>
+  <view class="label_message ">
+    <!--<image src="../../images/tabbars/label.png"  mode="aspectFit" class="label_image flo_l" ></image>-->
+    <view class="flo_l label_box {{acvive ? 'label_acvive' : ''}} {{!acvive ? 'label_acvive_v' : ''}}"  @tap="label_acvive">
+      <image src="../../images/tabbars/home.png"  mode="aspectFit" style="width: 60rpx;height: 60rpx;"></image>
+      <block wx:if="{{show}}">
+        <view class="font_28 flo_r label_text {{!show ? 'position' : ''}}"  @tap.stop="goHome('/pages/partyList')">主页</view>
+        <button class="font_28 flo_r label_text service {{!show ? 'position' : ''}}" open-type="contact">客服</button>
+      </block>
+      <block wx:else>
+        <view class="font_32 flo_r"  style="margin-top: -2rpx;color: #FB7E00;">...</view>
+      </block>
+    </view>
+  </view>
+  <block wx:if="{{loading}}">
+    <view class="weui-loadmore">
+      <view class="weui-loading"></view>
+      <view class="weui-loadmore__tips">正在加载</view>
+    </view>
+  </block>
+</template>
+<script>
+
+  import wepy from 'wepy'
+  import { service } from '../../config.js'
+  import base from '../../mixins/base'
+  import http from '../../mixins/http'
+  import user from '../../mixins/user'
+  import getFormId from '../../mixins/getFormId'
+
+  export default class station extends wepy.page {
+    mixins = [base, http, user, getFormId]
+    config = {
+      navigationBarTitleText: '聚会详情',
+      navigationBarTextStyle: 'black',
+      navigationBarBackgroundColor: '#fafffb',
+      enablePullDownRefresh: true
+    }
+    data = {
+      noMoreList: false,
+      loading: false,
+      list: [],
+      user: [],
+      party_id: 0,
+      members: [],
+      show: false,
+      notes: '',
+      shownotes: false,
+      text: '展开↓',
+      acvive: false,
+      showmember: true
+    }
+
+    onLoad(e) {
+      this.party_id = e.party_id
+      this.update(this.party_id)
+    }
+    onShareAppMessage(res) {
+      wx.canvasToTempFilePath({
+        x: 100,
+        y: 200,
+        width: 50,
+        height: 50,
+        destWidth: 100,
+        destHeight: 100,
+        canvasId: 'myCanvas',
+        success: function(res) {
+          console.log(res.tempFilePath)
+          debugger
+        }
+      })
+      let that = this
+      that.showmember = false
+      that.$apply()
+//      return this.$parent.onShareAppMessage('邀请你参加聚会')
+      return {
+        title: '邀请你参加聚会',
+        path: '',
+        success: function(res) {
+          // 转发成功
+          that.showmember = true
+          that.$apply()
+        },
+        fail: function(res) {
+          // 转发失败
+          that.showmember = true
+          that.$apply()
+        }
+      }
+    }
+    onPullDownRefresh() {
+      this.update(this.party_id)
+    }
+    onShow() {
+      this.$parent.getTracker(this.$root.$name, this.config.navigationBarTitleText)
+    }
+    update(partyId) {
+      if (this.loading || this.noMoreList) return
+      this.loading = true
+      // 请求列表
+      this.$get({
+        url: service.parties + '/' + partyId
+      }, {
+        success: ({code, data}) => {
+          this.noMoreList = false
+          this.list = data
+          this.notes = this.list.short_notes
+          this.user = data.user
+          this.members = data.members
+          this.$apply()
+          console.log(this.user)
+        },
+        fail: ({code, data}) => {
+          // 失败了什么也不做
+        },
+        complete: () => {
+          this.loading = false
+        }
+      })
+    }
+
+    methods = {
+      goadderss(latitude, longitude) {
+        let that = this
+        wepy.openLocation({
+          latitude: Number(latitude),
+          longitude: Number(longitude),
+          name: that.list.address,
+          address: that.list.address_detail
+        })
+      },
+      unfold() {
+        if (this.shownotes) {
+          this.notes = this.list.short_notes
+          this.text = '展开↓'
+          this.shownotes = false
+          this.$apply()
+        } else {
+          this.notes = this.list.notes
+          this.text = '收起↑'
+          this.shownotes = true
+          this.$apply()
+        }
+      },
+      goHome(url) {
+        wx.reLaunch({url: url})
+      },
+      goto(url) {
+        wx.navigateTo({url: url})
+      },
+      label_acvive() {
+        if (this.acvive) {
+          this.acvive = false
+          this.show = false
+          this.$apply()
+        } else {
+          setTimeout(() => {
+            this.show = true
+            this.$apply()
+          }, 500)
+          this.acvive = true
+          this.$apply()
+        }
+      },
+      saveTemplates() {
+        let that = this
+        that.$post({
+          url: service.parties + '/' + that.party_id + '/templates',
+          data: {
+            formId: this.formId
+          }
+        }, {
+          success: ({code, data}) => {
+            wx.showToast({
+              title: '保存成功',
+              image: '../../images/tabbars/succeed.png',
+              duration: 1500
+            })
+          },
+          fail: ({code, data}) => {
+            // 失败了什么也不做
+          },
+          complete: () => {
+            this.loading = false
+          }
+        })
+      },
+      fetch() {
+        wx.showToast({
+          title: '该功能尚未开放....',
+          icon: 'none',
+          duration: 1500
+        })
+      },
+      sign(type) {
+        let that = this
+        if (type == 'join') {
+          wx.navigateTo({url: '/pages/party/apply_party?party_id=' + this.party_id})
+        } else {
+          console.log('我要取消')
+          wx.showModal({
+            title: '提示',
+            content: '是否确认取消报名？',
+            success: (res) => {
+              if (res.confirm) {
+                that.$delete({
+                  url: service.parties + '/' + that.party_id + '/members',
+                  data: {
+                    formId: that.formId
+                  }
+                }, {
+                  success: ({code, data}) => {
+                    wx.showToast({
+                      title: '取消成功',
+                      image: '../../images/tabbars/succeed.png',
+                      duration: 1500
+                    })
+                    that.update(that.party_id)
+                    console.log(this.user)
+                  },
+                  fail: ({code, data}) => {
+                    // 失败了什么也不做
+                  },
+                  complete: () => {
+                    this.loading = false
+                  }
+                })
+              } else if (res.cancel) {
+                console.log('用户点击取消')
+              }
+            }
+          })
+        }
+      },
+      setting(isDeadline, isCancel) {
+        let that = this
+        let itemList = []
+        if (isCancel == '1') {
+          itemList = ['重发聚会']
+          wx.showActionSheet({
+            itemList: itemList,
+            success: function(res) {
+              console.log('woshi重发')
+              that.$post({
+                url: service.reset + '/' + that.party_id,
+                data: {
+                  formId: that.formId
+                }
+
+              }, {
+                success: ({code, data}) => {
+                  console.log(data.id)
+//                  debugger
+                  wx.redirectTo({
+                    url: '/pages/party/edit_party?party_id=' + data.id
+                  })
+                },
+                fail: ({code, data}) => {
+                  // 失败了什么也不做
+                },
+                complete: () => {
+                  this.loading = false
+                }
+              })
+            },
+            fail: function(res) {
+              console.log(res.errMsg)
+            }
+          })
+        } else if (isDeadline == '1') {
+          itemList = ['取消聚会']
+          wx.showActionSheet({
+            itemList: itemList,
+            success: function(res) {
+              console.log(res.tapIndex)
+              let data = {}
+              data.is_cancel = 1
+              data.formId = that.formId
+              if (!res.tapIndex) {
+                wx.showModal({
+                  title: '提示',
+                  content: '是否确认取消聚会？',
+                  success: (res) => {
+                    if (res.confirm) {
+                      that.$put({
+                        url: service.parties + '/' + that.party_id, data
+                      }, {
+                        success: ({code, data}) => {
+                          wx.showToast({
+                            title: '取消成功',
+                            image: '../../images/tabbars/succeed.png',
+                            duration: 1500
+                          })
+                          that.update(that.party_id)
+//                          setTimeout(() => {
+//                            wx.navigateTo({url: '/pages/partyList'})
+//                          }, 1500)
+                        },
+                        fail: ({code, data}) => {
+                          // 失败了什么也不做
+                        },
+                        complete: () => {
+                          this.loading = false
+                        }
+                      })
+                    } else if (res.cancel) {
+                      console.log('用户点击取消')
+                    }
+                  }
+                })
+              }
+            },
+            fail: function(res) {
+              console.log(res.errMsg)
+            }
+          })
+        } else {
+          itemList = ['截至报名', '取消聚会']
+          wx.showActionSheet({
+            itemList: itemList,
+            success: function(res) {
+              console.log(res.tapIndex)
+              let data = {}
+              if (!res.tapIndex) {
+                data.is_deadline = 1
+              } else {
+                data.is_cancel = 1
+              }
+              data.formId = that.formId
+              if (!res.tapIndex) {
+                wx.showModal({
+                  title: '提示',
+                  content: '是否确认截至报名？',
+                  success: (res) => {
+                    if (res.confirm) {
+                      that.$put({
+                        url: service.parties + '/' + that.party_id, data
+                      }, {
+                        success: ({code, data}) => {
+                          wx.showToast({
+                            title: '设置成功',
+                            image: '../../images/tabbars/succeed.png',
+                            duration: 1500
+                          })
+                          that.update(that.party_id)
+                        },
+                        fail: ({code, data}) => {
+                          // 失败了什么也不做
+                        },
+                        complete: () => {
+                          this.loading = false
+                        }
+                      })
+                    } else if (res.cancel) {
+                      console.log('用户点击取消')
+                    }
+                  }
+                })
+              } else {
+                wx.showModal({
+                  title: '提示',
+                  content: '是否确认取消聚会？',
+                  success: (res) => {
+                    if (res.confirm) {
+                      that.$put({
+                        url: service.parties + '/' + that.party_id, data
+                      }, {
+                        success: ({code, data}) => {
+                          wx.showToast({
+                            title: '取消成功',
+                            image: '../../images/tabbars/succeed.png',
+                            duration: 1500
+                          })
+                          that.update(that.party_id)
+//                          setTimeout(() => {
+//                            wx.navigateTo({url: '/pages/partyList'})
+//                          }, 1500)
+                        },
+                        fail: ({code, data}) => {
+                          // 失败了什么也不做
+                        },
+                        complete: () => {
+                          this.loading = false
+                        }
+                      })
+                    } else if (res.cancel) {
+                      console.log('用户点击取消')
+                    }
+                  }
+                })
+              }
+            },
+            fail: function(res) {
+              console.log(res.errMsg)
+            }
+          })
+        }
+      }
+    }
+
+    components = {
+    }
+  }
+</script>
+
+<style lang="less">
+  @import "../../styles/custom/fn.less";
+
+  page{
+    /*background: white;*/
+  }
+  .weui-input{
+    padding-left: 12rpx;
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .border_b{
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .page-index{
+    /*padding: 22rpx;*/
+    /*min-height: 700rpx;*/
+    /*box-shadow: 1rpx 1rpx 12rpx #d3d3d3;*/
+  }
+  .party{
+    position: relative;
+    padding:22rpx 50rpx;
+    margin:0 22rpx;
+    background:white;
+    /*border-bottom: 1rpx solid #d5d5d5;*/
+  }
+  textarea{
+    width:100%;
+    height: 250rpx;
+  }
+  .weui-btn{
+    width: 50%;
+    border-radius: 0;
+  }
+  .icon_animation{
+    animation: 800ms shrinkfresh 1;
+    animation-fill-mode:forwards;
+  }
+  @keyframes shrinkfresh {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .message{
+    color: white;
+    padding: 6rpx 22rpx;
+    background: orange;
+    margin-left: -62rpx;
+  }
+  .user_image{
+    width: 100rpx;
+    height: 100rpx;
+    box-shadow: 1rpx 1rpx 18rpx #d3d3d3;
+  }
+  .user-message{
+    position: absolute;
+    right: 42rpx;
+    top: -22rpx;
+  }
+  .party_image{
+    width: 60rpx;
+    height: 60rpx;
+    box-shadow: 1rpx 1rpx 18rpx #d3d3d3;
+    border-radius: 50%;
+    margin-top: 12rpx;
+    margin-bottom: 12rpx;
+    margin-right: 22rpx;
+  }
+  .party_setting{
+    width: 60rpx;
+    height: 60rpx;
+    box-shadow: 1rpx 1rpx 18rpx #d3d3d3;
+    /*border-radius: 50%;*/
+  }
+  .setting{
+    width: 20%;
+  }
+  .member{
+    margin: 0 22rpx;
+    padding: 6rpx 32rpx;
+    background: white;
+    border-top: 1rpx solid #d3d3d3;
+    /*border-bottom: 1rpx solid #d3d3d3;*/
+  }
+  .setting_box{
+    border-radius: 50%;
+    width: 60rpx;
+    height: 60rpx;
+    padding: 12rpx;
+    background: red;
+    margin-left: 22rpx;
+    margin-top: 6rpx;
+  }
+  .setting_box:active{
+    transform: scale(1.1);
+  }
+  .label_message{
+    /*background: white;*/
+    /*width: 30%;*/
+    position: fixed;
+    right: 0rpx;
+    bottom: 30%;
+  }
+  .label_text{
+    height: 80rpx;
+    margin-top: -10rpx;
+    border-bottom: 1rpx solid #FB7E00;
+  }
+  .label_text:hover{
+    color: #FB7E00;
+  }
+  .label_image{
+    width: 100rpx;
+    height: 100rpx;
+    z-index: 10;
+    position: relative;
+  }
+  .label_box{
+    width: 86rpx;
+    text-align: center;
+    height: 100rpx;
+    line-height: 120rpx;
+    padding-right: 12rpx;
+    background: white;
+    border-radius: 6 rpx;
+    border-bottom-left-radius: 32rpx;
+    border-top-right-radius: 32rpx;
+    box-shadow: 1rpx 1rpx 12rpx #d6d6d6;
+  }
+  .label_acvive{
+    animation: rotatefresh 500ms 1 ;
+    animation-fill-mode:forwards;
+  }
+  @keyframes rotatefresh {
+    from {
+      width: 86rpx;
+    }
+    to {
+      width: 130rpx;
+    }
+  }
+  .label_acvive_v{
+    animation: rotatefresh1 500ms 1 ;
+    animation-fill-mode:forwards;
+  }
+  @keyframes rotatefresh1 {
+    from {
+      width: 130rpx;
+    }
+    to {
+      width: 86rpx;
+    }
+  }
+  .notes_text{
+    margin-left: 6rpx;
+    color: #35bbe6;
+  }
+  .share{
+    width: 60rpx;
+    height: 60rpx;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 60rpx;
+    font-size: 50rpx;
+    color: #666666;
+    margin: 22rpx 0;
+    box-shadow: 0rpx 0rpx 18rpx #d3d3d3;
+  }
+  .service{
+    border-bottom-left-radius: 32rpx;
+    border-top-right-radius: 32rpx;
+  }
+  .position{
+    position: absolute;
+    right: -22rpx;
+  }
+</style>

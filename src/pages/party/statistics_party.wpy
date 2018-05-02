@@ -1,0 +1,287 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<template>
+  <view>
+    <view class="weui-message">
+      {{join_arr.member_count}}人参加聚会：其中<span class="red"> {{join_arr.possible_member_count}} </span>个人可能参加,<span class="red"> {{join_arr.servant_member_count}} </span>人参加服侍
+    </view>
+  </view>
+  <view class="nav">
+    <view class="nav_btn font_28 {{nav_active ? 'nav_active' : ''}}" @tap="navlist('1')">报名成员</view>
+    <view class="nav_btn font_28 {{nav_active_v ? 'nav_active' : ''}}" @tap="navlist('2')">服侍成员</view>
+    <view>
+      <view class="red font_26 flo_r" style="line-height: 54rpx;">为可能参加人员</view>
+      <image src="../../images/tabbars/query.png"  mode="aspectFit" class="flo_r" style="width:48rpx; height: 48rpx;"></image>
+    </view>
+  </view>
+  <!--<bolck wx:if="{{members.length != 0}}">-->
+    <view class="members" wx:for="{{members}}" wx:key="*this">
+      <view>
+        <image src="{{item.avatar}}"  mode="aspectFit" class="member_image flo_l"></image>
+        <view class="font_32">{{item.name}}</view>
+        <view class="font_28 mobile" @tap="makePhoneCall('{{item.mobile}}')">{{item.mobile}}
+          <image src="../../images/tabbars/phone.png" style="width: 42rpx;height: 42rpx;margin-bottom: -8rpx;" mode="aspectFit" ></image>
+        </view>
+        <view class="font_28" wx:if="{{item.referrer}}">推荐人：{{item.referrer}}</view>
+        <view class="clearfloat"></view>
+        <image src="../../images/tabbars/query.png"  mode="aspectFit" class="member_icon flo_l" wx:if="{{item.is_possible == '1'}}"></image>
+        <view class="font_28 red" wx:if="{{item.servant.title}}" style="position: absolute;right: 12rpx;bottom: 12rpx;border: 1rpx solid red; border-radius: 6rpx;padding: 1rpx 12rpx;">{{item.servant.title}}</view>
+      </view>
+    </view>
+  <!--</bolck>-->
+  <!--<bolck wx:else>-->
+    <view class="mem_message font_32" wx:if="{{showMessage}}">暂无成员信息</view>
+  <!--</bolck>-->
+  <block wx:if="{{loading}}">
+    <view class="weui-loadmore">
+      <view class="weui-loading"></view>
+      <view class="weui-loadmore__tips">正在加载</view>
+    </view>
+  </block>
+
+</template>
+<script>
+
+  import wepy from 'wepy'
+  import { service } from '../../config.js'
+  import base from '../../mixins/base'
+  import http from '../../mixins/http'
+  import user from '../../mixins/user'
+
+  export default class statistics extends wepy.page {
+    mixins = [base, http, user]
+    config = {
+      navigationBarTitleText: '聚会统计',
+      enablePullDownRefresh: true
+    }
+    data = {
+      noMoreList: false,
+      loading: false,
+      members: [],
+      join_arr: [],
+      party_id: 0,
+      icon_animation: false,
+      nav_active: true,
+      index: '',
+      page: 1,
+      title: '',
+      nav_active_v: false,
+      showMessage: false
+    }
+
+    onReady() {
+    }
+    onShareAppMessage(res) {
+      return this.$parent.onShareAppMessage(this.title + '报名统计')
+    }
+
+    onShow() {
+      this.$parent.getTracker(this.$root.$name, this.config.navigationBarTitleText)
+    }
+
+    onLoad(e) {
+      if (e.party_id) {
+        this.title = e.title
+        this.party_id = e.party_id
+        this.$apply()
+        this.initPageData(this.party_id, this.index)
+      }
+    }
+
+    onPullDownRefresh() {
+      this.noMoreList = false
+      this.page = 1
+      this.initPageData(this.party_id, this.index)
+    }
+
+    onReachBottom() {
+      console.log('到底了/.../')
+      setTimeout(() => {
+//        this.initPageData(this.party_id, this.index)
+        this.$apply()
+      }, 200)
+    }
+    // 初始化页面数据
+    initPageData(partyId, servant) {
+      let that = this
+      let url = ''
+      if (servant) {
+        url = service.parties + '/' + partyId + '/members?is_servant=1'
+      } else {
+        url = service.parties + '/' + partyId + '/members'
+      }
+      that.loading = true
+      this.$get({
+        url: url,
+        data: {
+          page: this.page
+        }
+      }, {
+        success: ({code, data}) => {
+          that.join_arr = data.join_arr
+          that.members = data.members
+          if (that.members.length == 0) {
+            that.showMessage = true
+          }
+//          debugger
+
+//          if (that.members.length == 0 || that.page == 1) {
+//            that.members = data
+//            that.$apply()
+//          } else {
+//            data.map(function (item, index) {
+//              that.members.push(item)
+//              that.$apply()
+//            })
+//          }
+//          that.page += 1
+          that.$apply()
+        },
+        fail: ({code, data}) => {},
+        complete: () => { this.loading = false }
+      })
+    }
+
+    methods = {
+      navlist(index) {
+        this.page = 1
+        this.loading = true
+        this.members = []
+        this.showMessage = false
+        if (index == '1') {
+          this.index = ''
+          this.nav_active = true
+          this.nav_active_v = false
+          setTimeout(() => {
+            this.initPageData(this.party_id)
+          }, 200)
+        } else {
+          this.index = '1'
+          this.nav_active = false
+          this.nav_active_v = true
+          setTimeout(() => {
+            this.initPageData(this.party_id, '1')
+          }, 200)
+        }
+        this.$apply()
+      },
+      typing(index, type, e) {
+        if (type == 'title') {
+          this.statiob_list[index].title = e.detail.value
+        } else if (type == 'need_num') {
+          this.statiob_list[index].need_num = e.detail.value
+        }
+        this.$apply()
+      },
+      makePhoneCall(mobile) {
+        wx.makePhoneCall({
+          phoneNumber: mobile
+        })
+      },
+      goto(url) {
+        wx.navigateTo({url: url})
+      }
+    }
+
+    components = {
+    }
+  }
+</script>
+
+<style lang="less">
+  @import "../../styles/custom/step.less";
+  @import "../../styles/custom/fn.less";
+  page{
+    background: white;
+  }
+  .weui-input{
+    padding-left: 12rpx;
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .border_b{
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .page-index{
+    /*padding: 22rpx;*/
+    min-height: 700rpx;
+  }
+  .weui-cell{
+    /*position: inherit;*/
+    padding: 22rpx 50rpx;
+    background:white;
+    /*border-bottom: 1rpx solid #d5d5d5;*/
+  }
+  .weui-message{
+    margin-bottom: 0rpx;
+  }
+  .nav{
+    height: 60rpx;
+    background: white;
+    padding: 12rpx 22rpx;
+    border-bottom: 12rpx solid #d9d9d9;
+  }
+  .nav_btn{
+    padding: 1rpx 32rpx;
+    height:90%;
+    /*background: #F9E704;*/
+    float: left;
+    text-align: center;
+    margin-left: 22rpx;
+    /*color: #666666;*/
+    border-radius: 32rpx;
+    line-height: 54rpx;
+    box-shadow: 1rpx 1rpx 12rpx #e3e3e3;
+  }
+
+  .nav_active {
+    background: #F9E704;
+    animation: 1s opacity2 ;
+  }
+  @keyframes opacity2{
+    0%{opacity:0}
+    100%{opacity:1;}
+  }
+  .members{
+    /*background: red;*/
+    position: relative;
+    padding:12rpx 32rpx;
+    margin: 12rpx 22rpx;
+    border-radius: 6rpx;
+    position: relative;
+    box-shadow: 1rpx 1rpx 12rpx #dedede;
+  }
+  .member_image{
+    width: 120rpx;
+    height: 120rpx;
+    margin-top: 12rpx;
+    margin-right: 32rpx;
+  }
+  .member_icon{
+    width: 48rpx;
+    height: 48rpx;
+    position: absolute;
+    right: 12rpx;
+    top: 12rpx;
+  }
+  .mem_message{
+    margin: 22rpx;
+    box-shadow: 1rpx 1rpx 12rpx #dedede;
+    padding: 12rpx;
+    color: #666666;
+    text-align: center;
+  }
+  .mobile:active{color: skyblue}
+</style>

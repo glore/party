@@ -1,0 +1,407 @@
+<template>
+  <!--<view style="height: 0rpx"></view>-->
+  <view class="nav">
+    <form bindsubmit="formSubmit" report-submit>
+      <button formType="submit" class="btn" data-type="click">
+        <view class="nav_btn font_28 {{nav_active_joined ? 'nav_active' : ''}}" @tap="navlist('JOINED')">待参加</view>
+        <view class="nav_btn font_28 {{nav_active_finished ? 'nav_active' : ''}}" @tap="navlist('FINISHED')">已结束</view>
+        <view class="nav_btn font_28 {{nav_active_browsed ? 'nav_active' : ''}}" @tap="navlist('BROWSED')">浏览过</view>
+        <view class="nav_btn font_28 {{nav_active ? 'nav_active' : ''}}" @tap="navlist('ALL')">我的</view>
+      </button>
+    </form>
+  </view>
+  <!--<block  wx:if="{{nav_active_joined}}">-->
+    <!--<partyList :list.sync="list_joined" :hideMessage.sync="hideMessage" ></partyList>-->
+  <!--</block>-->
+  <!--<block  wx:if="{{nav_active_finished}}">-->
+    <!--<partyList :list.sync="list_finished" :hideMessage.sync="hideMessage" ></partyList>-->
+  <!--</block>-->
+  <!--<block  wx:if="{{nav_active_browsed}}">-->
+    <!--<partyList :list.sync="list_browsed" :hideMessage.sync="hideMessage" ></partyList>-->
+  <!--</block>-->
+  <!--<block  wx:if="{{nav_active}}">-->
+    <partyList :list.sync="list" :hideMessage.sync="hideMessage" ></partyList>
+  <!--</block>-->
+  <view class="scan">
+    <!--<view @tap="goto('/pages/party/edit_party')" wx:if="{{index}}" style="background: white;z-index:10;position:relative;">-->
+      <!--<image src="../images/tabbars/add.png" mode="aspectFit" class="{{icon_animation ? 'icon_animation' : ''}}" style="width: 120rpx;height: 120rpx;"></image>-->
+    <!--</view>-->
+    <view @tap="gotoparty" style="background: white;z-index:10;position:relative;border-radius: 50%;width:120rpx;">
+      <form bindsubmit="formSubmit" report-submit>
+        <button formType="submit" class="btn" data-type="click" style="line-height: 1">
+          <image src="../images/tabbars/add.png" mode="aspectFit" class="{{icon_animation ? 'icon_animation' : ''}}" style="width: 120rpx;height: 120rpx;"></image>
+        </button>
+      </form>
+    </view>
+    <view class="scan_home scan_active {{changerotate ? 'changerotate1' : ''}} {{shrink ? 'changeshrink1' : ''}}" @tap="goto('/pages/party/templates_party')" >
+      <image  class="imgicon" mode="aspectFit" src="../images/tabbars/add.png" style="margin-top: -12px"></image>
+      <text style="font-size: 22rpx;position: absolute;left: 26rpx;bottom: 0rpx;">模板</text>
+    </view>
+    <view class="scan_home scan_active {{changerotate ? 'changerotate2' : ''}} {{shrink ? 'changeshrink2' : ''}}" @tap="goto('/pages/party/edit_party')" >
+      <image  class="imgicon" mode="aspectFit" src="../images/tabbars/add.png" style="margin-top: -12px"></image>
+      <text style="font-size: 22rpx;position: absolute;left: 26rpx;bottom: 0rpx;">新建</text>
+    </view>
+  </view>
+  <block wx:if="{{loading}}">
+    <view class="weui-loadmore">
+      <view class="weui-loading"></view>
+      <view class="weui-loadmore__tips">正在加载</view>
+    </view>
+  </block>
+  <block wx:if="{{message && list.length == 0 }}">
+    <!--<view style="margin: auto;margin-top: -32rpx;position: relative">-->
+      <!--<image src='../images/tabbars/messageV.png'  mode="aspectFit"  style="transform: rotateX(180deg);width: 280rpx;height: 214rpx "></image>-->
+      <!--&lt;!&ndash;<view class="font_26" style="position: absolute;left: 60rpx;bottom: 62rpx;">1.先去<span style="color: #4ba7ff"  @tap="goto('/pages/library/sorts?library_id={{mylib.id}}')">新增分类</span>&ndash;&gt;-->
+      <!--</view>-->
+    <!--</view>-->
+    <view style="margin: auto;margin-bottom: -32rpx;position: fixed;right: 38rpx;bottom: 228rpx;">
+      <image src='../images/tabbars/messageV.png'  mode="aspectFit"  style="transform: rotateY(180deg) rotateZ(16deg);width: 340rpx;height: 218rpx;"></image>
+      <view class="font_26" style="position: absolute;left: 72rpx;bottom: 142rpx;transform: rotateZ(-12deg);">
+        点我！创建聚会
+      </view>
+    </view>
+  </block>
+</template>
+<script>
+
+  import wepy from 'wepy'
+  import { service } from '../config.js'
+  import base from '../mixins/base'
+  import http from '../mixins/http'
+  import user from '../mixins/user'
+  import getFormId from '../mixins/getFormId'
+  import partyList from '../components/List'
+
+  export default class station extends wepy.page {
+    mixins = [base, http, user, getFormId]
+    config = {
+      navigationBarTitleText: '聚会大厅',
+      navigationBarTextStyle: 'black',
+      navigationBarBackgroundColor: '#fafffb',
+      enablePullDownRefresh: true
+    }
+    data = {
+      noMoreList: false,
+      loading: false,
+      list: [],
+      user: [],
+      icon_animation: false,
+      nav_active_joined: true,
+      nav_active_finished: false,
+      nav_active_browsed: false,
+      nav_active: false,
+      Show: false,
+      rotate: true,
+      changerotate: false,
+      shrink: false,
+      CollectAnimation: false,
+      showanimation: true,
+      type: 'JOINED',
+      page: 1,
+      message: false,
+      hideMessage: false
+    }
+
+    onLoad() {
+      this.update(this.type, this.page)
+    }
+    onPullDownRefresh() {
+      this.noMoreList = false
+      this.page = 1
+      this.update(this.type, this.page)
+    }
+    onShareAppMessage(res) {
+      return this.$parent.onShareAppMessage(this.config.navigationBarTitleText)
+    }
+    onShow() {
+      this.$parent.getTracker(this.$root.$name, this.config.navigationBarTitleText)
+    }
+    onReachBottom() {
+      console.log('到底了/.../')
+      setTimeout(() => {
+        this.update(this.type, this.page)
+        this.$apply()
+      }, 200)
+    }
+    // 更新图书列表
+    update(type, page) {
+      let that = this
+      that.type = type
+      if (that.loading || that.noMoreList) return
+      that.loading = true
+      // 请求列表
+//      let url = ''
+      this.$get({
+        url: service.parties,
+        data: {
+          type: type,
+          page: page,
+          formId: this.formId
+        }
+      }, {
+        success: ({code, data}) => {
+          that.noMoreList = false
+//          this.list = data.data
+          data = data.data
+          if (that.list.length == 0 || that.page == 1) {
+//            setTimeout(() => {
+//            that.list = []
+            that.list = data.map(function (item) {
+              return item
+            })
+            if (that.list.length == 0) {
+              that.message = true
+              that.hideMessage = true
+              that.$apply()
+            }
+//            }, 200)
+          } else {
+            data.map(function (item, index) {
+              that.list.push(item)
+            })
+          }
+          that.page += 1
+        },
+        fail: ({code, data}) => {
+          // 失败了什么也不做
+        },
+        complete: () => {
+          this.loading = false
+        }
+      })
+    }
+
+    methods = {
+      rotate() {
+        if (this.showanimation) {
+          this.changerotate = true
+          setTimeout(() => {
+            this.$apply()
+          }, 500)
+          this.shrink = false
+          this.showanimation = false
+        } else {
+          setTimeout(() => {
+            this.$apply()
+          }, 500)
+          this.shrink = true
+          this.showanimation = true
+        }
+      },
+      navlist(type) {
+        let that = this
+        that.page = 1
+        that.list = []
+        that.type = type
+        that.hideMessage = false
+        that.nav_active_joined = false
+        that.nav_active_finished = false
+        that.nav_active_browsed = false
+        that.nav_active = false
+        if (type == 'JOINED') {
+          that.nav_active_joined = true
+          that.update('JOINED', that.page)
+        } else if (type == 'FINISHED') {
+          that.nav_active_finished = true
+          that.update('FINISHED', that.page)
+        } else if (type == 'BROWSED') {
+          that.nav_active_browsed = true
+          that.update('BROWSED', that.page)
+        } else {
+          that.nav_active = true
+          that.update('ALL', that.page)
+        }
+        that.$apply()
+      },
+      goto(url) {
+        wx.navigateTo({url: url})
+      },
+      gotoparty() {
+        this.icon_animation = true
+        setTimeout(() => {
+          this.icon_animation = false
+          this.$apply()
+        }, 800)
+        if (this.showanimation) {
+          this.changerotate = true
+          setTimeout(() => {
+            this.message = false
+            this.$apply()
+          }, 10)
+          this.shrink = false
+          this.showanimation = false
+        } else {
+          setTimeout(() => {
+            this.message = true
+            this.$apply()
+          }, 500)
+          this.shrink = true
+          this.showanimation = true
+        }
+//        wx.navigateTo({url: '/pages/party/edit_party'})
+      }
+
+    }
+
+    components = {
+      partyList
+    }
+  }
+</script>
+
+<style lang="less">
+  @import "../styles/weui/base/fn.wxss";
+  @import "../styles/custom/fn.less";
+  @import "../styles/custom/animation.less";
+  @import "../styles/custom/library.less";
+
+  .weui-input{
+    padding-left: 12rpx;
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .border_b{
+    border-bottom: 1rpx solid #e8e8e8;
+  }
+  .page-index{
+    margin: 12rpx 32rpx;
+    /*min-height: 700rpx;*/
+    margin-bottom: 48rpx;
+    box-shadow: 1rpx 1rpx 12rpx #d3d3d3;
+  }
+  .party{
+    position: relative;
+    padding: 32rpx 10rpx;
+    margin:0 32rpx;
+    background:white;
+    border-top-right-radius: 12rpx;
+    border-top-left-radius: 12rpx;
+    /*border-bottom: 1rpx solid #d5d5d5;*/
+  }
+  textarea{
+    width:100%;
+    height: 250rpx;
+  }
+  .weui-btn{
+    width: 50%;
+    border-radius: 0;
+  }
+  .icon_animation{
+    animation: 800ms shrinkfresh 1;
+    animation-fill-mode:forwards;
+  }
+  @keyframes shrinkfresh {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .message{
+    color: white;
+    padding: 6rpx 22rpx;
+    background: orange;
+    margin-left: -72rpx;
+    border-radius: 6rpx;
+  }
+  .user_image{
+    width: 100rpx;
+    height: 100rpx;
+    box-shadow: 1rpx 1rpx 18rpx #d3d3d3;
+  }
+  .user-message{
+    position: absolute;
+    right: 42rpx;
+    top: -22rpx;
+  }
+  .party_image{
+    width: 80rpx;
+    height: 80rpx;
+    box-shadow: 1rpx 1rpx 18rpx #d3d3d3;
+    border-radius: 50%;
+    margin-top: 12rpx;
+    margin-bottom: 12rpx;
+    margin-right: 22rpx;
+  }
+  .party_setting{
+    width: 60rpx;
+    height: 60rpx;
+    box-shadow: 1rpx 1rpx 18rpx #d3d3d3;
+    /*border-radius: 50%;*/
+  }
+  .setting{
+    width: 20%;
+  }
+  .member{
+    margin: 0 32rpx;
+    padding: 6rpx 32rpx;
+    background: white;
+    border-top: 1rpx solid #d3d3d3;
+    /*border-bottom: 1rpx solid #d3d3d3;*/
+  }
+  .setting_box{
+    border-radius: 50%;
+    width: 60rpx;
+    height: 60rpx;
+    padding: 12rpx;
+    background: red;
+    margin-left: 22rpx;
+    margin-top: 6rpx;
+  }
+  .setting_box:active{
+    transform: scale(1.1);
+  }
+  .nav{
+    width: 100%;
+    height: 60rpx;
+    background: white;
+    padding: 32rpx 22rpx 12rpx 22rpx;
+    border-bottom: 12rpx solid #d9d9d9;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 99;
+  }
+  .nav_btn{
+    padding: 1rpx 32rpx;
+    height:90%;
+    /*background: #F9E704;*/
+    float: left;
+    text-align: center;
+    margin-left: 22rpx;
+    /*color: #666666;*/
+    border-radius: 32rpx;
+    line-height: 54rpx;
+    /*box-shadow: 1rpx 1rpx 12rpx #e3e3e3;*/
+  }
+
+  .nav_active {
+    background: #F9E704;
+    animation: 1s opacity2 ;
+  }
+  @keyframes opacity2{
+    0%{opacity:0}
+    100%{opacity:1;}
+  }
+  .members{
+    /*background: red;*/
+    position: relative;
+    padding:12rpx 32rpx;
+    margin: 12rpx 22rpx;
+    border-radius: 6rpx;
+    box-shadow: 1rpx 1rpx 12rpx #dedede;
+  }
+  .member_image{
+    width: 120rpx;
+    height: 120rpx;
+    margin-top: 12rpx;
+    margin-right: 32rpx;
+  }
+  .member_icon{
+    width: 60rpx;
+    height: 60rpx;
+    position: absolute;
+    right: 12rpx;
+    top: 12rpx;
+  }
+</style>

@@ -1,0 +1,183 @@
+<template>
+  <view class="wrapper">
+    <view class="page-body">
+      <view class="page-body-wrapper">
+        <form bindsubmit="openLocation">
+          <view class="page-body-form">
+            <button @tap="servants" class="weui-btn btn-blue flo_l">客服</button>
+            <text class="page-body-form-key">经度</text>
+            <input class="page-body-form-value" type="text" value="{{location.longitude}}" name="longitude"></input>
+
+            <text class="page-body-form-key">纬度</text>
+            <input class="page-body-form-value" type="text"  value="{{location.latitude}}" name="latitude"></input>
+          </view>
+          <view class="page-body-buttons">
+            <button class="page-body-button" type="primary" bindtap="getLocation">获取位置</button>
+            <button class="page-body-button" type="primary" formType="submit">查看位置</button>
+            <button class="page-body-button" type="primary" bindtap="choose">选择位置</button>
+          </view>
+        </form>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+
+  export default class address extends wepy.page {
+    config = {
+      navigationBarTitleText: '客服',
+      navigationBarTextStyle: 'black',
+      navigationBarBackgroundColor: '#fafffb',
+      enablePullDownRefresh: false
+    }
+    data = {
+      hasLocation: false
+    }
+
+    onReady() {
+//      this.initPageData()
+    }
+
+    onShareAppMessage(res) {
+      return this.$parent.onShareAppMessage(this.config.navigationBarTitleText)
+    }
+
+    onShow() {
+      this.$parent.getTracker(this.$root.$name, this.config.navigationBarTitleText)
+    }
+
+    onPullDownRefresh() {
+
+    }
+
+    onReachBottom() {
+
+    }
+    // 获取经纬度
+    getLocation(e) {
+      console.log(e)
+      var that = this
+      wx.getLocation({
+        success: function (res) {
+          console.log(res)
+          that.setData({
+            hasLocation: true,
+            location: {
+              longitude: res.longitude,
+              latitude: res.latitude
+            }
+          })
+        }
+      })
+    }
+
+    // 根据经纬度在地图上显示
+    openLocation(e) {
+      var value = e.detail.value
+      wx.openLocation({
+        longitude: Number(value.longitude),
+        latitude: Number(value.latitude)
+      })
+    }
+    methods = {
+      servants() {
+        console.log('lkasl')
+        wx.navigateToMiniProgram({
+          appId: 'wx53cf66d72649eb5a',
+          path: 'pages/index',
+          extraData: {
+            foo: 'bar'
+          },
+          envVersion: 'develop',
+          success(res) {
+            // 打开成功
+          }
+        })
+      },
+      choose() {
+//        wx.getLocation({
+//          type: 'gcj02', //返回可以用于wx.openLocation的经纬度
+//          success: function(res) {
+//            var latitude = res.latitude
+//            var longitude = res.longitude
+//            wx.openLocation({
+//              latitude: latitude,
+//              longitude: longitude,
+//              scale: 28
+//            })
+//          }
+//        })
+        wx.chooseLocation({
+          success: function (res) {
+            // success
+//            console.log(res,"location")
+            console.log(res.name)
+            console.log(res.latitude)
+            console.log(res.longitude)
+            if (res.name == '') {
+              wx.showToast({
+                title: '请选择地址',
+                icon: 'none',
+                duration: 1500
+              })
+              setTimeout(() => {
+                wx.chooseLocation({
+                  success: function (res) {
+                  },
+                  fail: function () {
+                  },
+                  complete: function () {
+                  }
+                })
+              }, 1500)
+            }
+          },
+          fail: function () {
+            // fail
+
+          },
+          complete: function () {
+            // complete
+          }
+        })
+      }
+    }
+
+    components = {
+    }
+  }
+</script>
+
+<style lang="less">
+  .wrapper{
+    height: 100%;
+    background:#fff;
+  }
+  .page-body-form-value{
+    font-size: 14px;
+    color:darkturquoise;
+    font-weight: bold;
+    padding-left: 15px;
+    border: 1px solid rgb(72, 165, 131);
+    border-radius: 4px;
+    height: 30px;
+    line-height: 30px;
+  }
+
+  .page-body-form-key{
+    font-size:14px;
+    padding: 10px;
+    margin-top:15px;
+    font-family: "Microsoft Yahei";
+    font-weight: bold;
+    height: 30px;
+    line-height: 30px;
+  }
+
+  .page-body-button{
+    margin-top:20px;
+    line-height: 2;
+  }
+</style>

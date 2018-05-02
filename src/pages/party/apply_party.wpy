@@ -1,0 +1,232 @@
+<template>
+  <view class="main-register">
+    <view style="height: 20rpx"></view>
+    <view class="weui-message">
+      欢迎选择聚会过程你能参加的服侍岗位：
+    </view>
+    <view class="weui-cells weui-cells_after-title main-address">
+      <view class="weui-cells weui-cells_after-title">
+        <view class="weui-cell weui-cell_switch">
+          <view class="weui-cell__ft">
+            <switch  @change="select" id="title"></switch>
+          </view>
+          <label class="label-2__text" for="title">
+            <view class="weui-cell__bd font_32">我可能参加不了聚会</view>
+          </label>
+        </view>
+      </view>
+      <!--<view class="weui-toptips weui-toptips_warn" wx:if="{{tipsFlag}}">错误提示</view>-->
+      <view class="weui-cells__title" wx:if="{{radioItems.length != 0}}">我要参加服侍</view>
+      <view class="weui-cells weui-cells_after-title">
+        <radio-group @change="radioChange">
+          <label class="weui-cell weui-check__label" wx:for="{{radioItems}}" wx:key="value">
+            <radio class="weui-check" value="{{item.id}}" checked="{{item.checked}}" disabled="{{item.disabled}}"/>
+            <view class="weui-cell__bd">{{item.title}}</view>
+            <view class="orange">{{item.num}}/{{item.need_num}}</view>
+            <!--<view class="weui-cell__ft weui-cell__ft_in-radio" wx:if="{{item.checked}}">-->
+              <!--<icon class="weui-icon-radio" type="success_no_circle" size="16"></icon>-->
+            <!--</view>-->
+          </label>
+        </radio-group>
+        <!--<view class="weui-cell weui-cell_link">-->
+          <!--<view class="weui-cell__bd">添加更多</view>-->
+        <!--</view>-->
+        <view class="weui-cell weui-cell_link">
+          <!--<view class="weui-cell__bd">推荐人</view>-->
+          <view class="weui-cell__bd h4" style="position: relative">
+            <input @input="typing('referrer')" class="weui-input"  value="{{referrer}}" placeholder="" style="padding-left: 20%;"/>
+            <view style="position: absolute;left: 12rpx;top: 16rpx;font-size: 32rpx;color: #666666" class="bold">推荐人:</view>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view style="width:30%;margin: auto">
+      <form bindsubmit="formSubmit" report-submit>
+        <button formType="submit"  data-type="click"  @tap="apply" class="weui-btn btn-blue">
+          确定报名
+        </button>
+      </form>
+    </view>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import { service } from '../../config.js'
+  import http from '../../mixins/http'
+  import base from '../../mixins/base'
+  import user from '../../mixins/user'
+  import ShareMessage from '../../mixins/ShareMessage'
+  import getFormId from '../../mixins/getFormId'
+
+  export default class applyParty extends wepy.page {
+    mixins = [base, http, user, ShareMessage, getFormId]
+    config = {
+      navigationBarTitleText: '聚会报名',
+      navigationBarTextStyle: 'black',
+      navigationBarBackgroundColor: '#fafffb',
+      enablePullDownRefresh: false
+    }
+    data = {
+      loading: false,
+      timer: null,
+      radioItems: [
+//        {title: '正在加速加载中...', id: '0', checked: false}
+      ],
+      is_possible: 0,
+      servant_id: 0,
+      referrer: '',
+      disabled: false
+    }
+
+    onLoad(e) {
+      this.party_id = e.party_id
+      this.$apply()
+      // 初始化页面数据
+      this.initPageData(this.party_id)
+    }
+
+    onShow() {
+      // 清空code
+      this.code = ''
+    }
+
+    onPullDownRefresh() {
+      this.initPageData()
+    }
+    onShareAppMessage(res) {
+      return this.$parent.onShareAppMessage(this.config.navigationBarTitleText)
+    }
+    // 初始化页面数据
+    initPageData(partyId) {
+      this.$get({
+        url: service.parties + '/' + partyId + '/servants',
+        data: {}
+      }, {
+        success: ({code, data}) => {
+          if (data.length !== 0) {
+            data.forEach(function (item, index, arr) {
+              arr[index].checked = false
+            })
+//          data[0].checked = true
+            this.radioItems = data
+            this.radioItems.forEach((item, index, arr) => {
+              if (arr[index].need_num === arr[index].num) {
+                this.radioItems[index].disabled = true
+              } else {
+                this.radioItems[index].disabled = false
+              }
+            })
+//            this.servant_id = this.radioItems[0].id
+            this.$apply()
+          }
+        },
+        fail: ({code, data}) => {},
+        complete: () => { this.loading = false }
+      })
+    }
+    methods = {
+      radioChange (e) {
+        console.log('radio发生change事件，携带value值为：', e.detail.value)
+        this.servant_id = e.detail.value
+        this.radioItems.forEach(function (item, index, arr) {
+          arr[index].checked = false
+          if (e.detail.value == arr[index].id) {
+            arr[index].checked = true
+          }
+        })
+        console.log(this.radioItems)
+      },
+      goto(url) {
+        wx.navigateTo({url: url})
+      },
+      select(e) {
+        if (e.detail.value) {
+          this.is_possible = 1
+        } else {
+          this.is_possible = 0
+        }
+        console.log(this.is_possible)
+      },
+      apply() {
+        let that = this
+        this.$post({
+          url: service.parties + '/' + that.party_id + '/join',
+          data: {
+            is_possible: this.is_possible,
+            servant_id: this.servant_id,
+            formId: this.formId,
+            referrer: this.referrer
+          }
+        }, {
+          success: ({code, data}) => {
+            wx.showToast({
+              title: '报名成功',
+              icon: 'success',
+              duration: 1500
+            })
+            setTimeout(() => {
+              wx.redirectTo({
+                url: '/pages/party/start_party?party_id=' + that.party_id
+              })
+            }, 1500)
+          },
+          fail: ({code, data}) => {},
+          complete: () => { this.loading = false }
+        })
+      },
+      typing (type, e) {
+        if (this.isDefined(this[type])) {
+          this[type] = e.detail.value
+        }
+      }
+    }
+  }
+</script>
+
+<style lang="less">
+  @import "../../styles/custom/fn.less";
+
+  .main-register{
+    .weui-message{
+      background: #F7EBA8;
+      margin-bottom: 48rpx;
+      padding: 36rpx;
+      text-align:center;
+      font-size: 28rpx;
+    }
+    .weui-media-box__title{
+      padding-bottom: 0.5em;
+    }
+    .main-address{
+      margin-bottom: 1em;
+      padding: 36rpx;
+    }
+    .reset-cell-block{
+      display:block !important;
+      padding-bottom:0;
+
+      & + .weui-cell{
+        &:before{
+          display: none;
+        }
+      }
+    }
+    .reset-label-right{
+      color: #666;
+      line-height: 0;
+      margin-left: 1em;
+      padding-left: 1em;
+    }
+    .weui-input{
+      padding-left: 12rpx;
+    }
+    .border_b{
+      border-bottom: 1rpx solid #e8e8e8;
+    }
+    .weui-cell{padding-right: 0}
+    .reset-input{
+      padding: 6px 15px;
+    }
+  }
+</style>

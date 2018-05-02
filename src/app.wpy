@@ -1,0 +1,120 @@
+<script>
+import wepy from 'wepy'
+import 'wepy-async-function'
+var ga = require('./ga.js')
+var GoogleAnalytics = ga.GoogleAnalytics
+var HitBuilders = ga.HitBuilders
+
+export default class extends wepy.app {
+  config = {
+    pages: [
+//      'pages/service',
+      'pages/partyList',
+      'pages/user/register',
+      'pages/party/edit_party',
+      'pages/party/edit_station',
+      'pages/party/start_party',
+      'pages/party/statistics_party',
+      'pages/party/templates_party',
+      'pages/party/apply_party'
+    ],
+    window: {
+      navigationBarTitleText: '小程序',
+      navigationBarTextStyle: 'black',
+      navigationBarBackgroundColor: '#fafffb',
+      backgroundColor: '#eaeaea',
+      backgroundTextStyle: 'light',
+      enablePullDownRefresh: true
+    },
+    networkTimeout: {
+      request: 5000,
+      downloadFile: 10000
+    },
+    debug: true
+  }
+
+  globalData = {
+    user: null,
+    cart: null,
+    tracker: null
+  }
+
+  constructor () {
+    super()
+    this.use('requestfix')
+  }
+
+  onLaunch() {
+  }
+
+  onShow(options) {
+  }
+
+  onShareAppMessage(title = '友福聚会') {
+    return {
+      title: title,
+//      path: '/pages/index.wpy',
+      // imageUrl: '',
+      success: function(res) {
+        // 转发成功
+        console.log(res.errMsg)
+      },
+      fail: function(res) {
+        // 转发失败
+        console.log(res.errMsg)
+      }
+    }
+  }
+
+  /* ============= 工具方法（app没法用mixins，就再写一遍了） ============= */
+  isObject(item) {
+    return typeof item === 'object' && !this.isArray(item)
+  }
+  isArray(item) {
+    return Object.prototype.toString.apply(item) === '[object Array]'
+  }
+  isUndefined(item) {
+    return typeof item === 'undefined'
+  }
+
+  // Google analytics
+  getTracker(name, text) {
+    if (!this.globalData.tracker) {
+      // 初始化GoogleAnalytics Tracker
+      this.globalData.tracker = GoogleAnalytics.getInstance(this)
+      .setAppName('友福聚会')
+      .setAppVersion('v0.1')
+      .newTracker('UA-109097480-6')
+    }
+    var t = this.globalData.tracker
+    t.setScreenName(text)
+    t.send(new HitBuilders.ScreenViewBuilder().build())
+  }
+  /* ========================= 更新缓存信息 ======================== */
+
+  $updateGlobalData(name, obj) {
+    // 校验: globalData
+    if (!this.globalData) return
+    // 校验: 操作字段
+    if (typeof name !== 'string' || name === '') return {}
+    // 取已有信息
+    const info = this.globalData[name] || {}
+    // 更新缓存
+    if (obj && this.isObject(obj)) {
+      // Object合并第一层
+      this.globalData[name] = Object.assign({}, info, obj)
+    } else if (!this.isUndefined(obj)) {
+      // 其他非undefined数据直接覆盖
+      this.globalData[name] = obj
+    }
+    this.$apply && this.$apply()
+    console.info(`[${obj ? 'UPDATE' : 'GET'} GlobalData ${name}]:`, this.globalData[name])
+    return this.globalData[name]
+  }
+}
+</script>
+
+<style lang="less">
+@import "./styles/weui/index.less";
+@import "./styles/custom/index.less";
+</style>

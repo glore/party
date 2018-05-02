@@ -1,0 +1,116 @@
+<template>
+  <view style="height: 150rpx"></view>
+  <view class="page-index"  wx:for="{{list}}" wx:key="*this" @tap="goto('/pages/party/start_party?party_id={{item.id}}')">
+    <view class="party">
+      <view class="font_26 message flo_l" wx:if="{{item.is_deadline == 1}}" style="background: red">已截止报名</view>
+      <view class="font_26 message flo_l" wx:else>正在报名</view>
+      <view class="user-message">
+        <image src="{{item.user.wechat.avatar}}"  mode="aspectFit" class="user_image"></image>
+        <view class="font_26 text-center">{{item.user.name}}</view>
+      </view>
+      <view class="clearfloat"></view>
+      <view style="width: 100%" class="font_32 bold">{{item.title}}</view>
+      <view style="width: 100%" class="font_28 flo_l">
+        <view class="flo_l">时间：{{item.start_time}}</view>
+        <view class="orange flo_l" style="margin-left: 22rpx;">{{item.duration}}小时</view>
+      </view>
+      <!--<view class="font_28"> 时长：</view>-->
+      <view style="width: 100%" class="font_28">
+        地址：{{item.address}} {{item.address_detail}}
+        <image src="../images/tabbars/address.png"  mode="aspectFit" class="imgicon" style="margin-bottom: 8rpx;width: 60rpx;height: 60rpx"></image>
+      </view>
+      <!--<view style="width: 100%" class="font_28">-->
+        <!--{{item.address_detail}}-->
+        <!--&lt;!&ndash;<image src="../../images/tabbars/address.png"  mode="aspectFit" class="imgicon" style="margin-bottom: 8rpx"></image>&ndash;&gt;-->
+      <!--</view>-->
+      <view style="width: 100%" class="font_28 ellipsis_3">备注：{{item.notes}}</view>
+      <view wx:if="{{item.is_cancel == '1'}}">
+        <image src="../images/tabbars/quxiao.png"  mode="aspectFit" style="margin-bottom: 8rpx;position:absolute;right: 0;bottom:10rpx;"></image>
+      </view>
+    </view>
+    <view class="member">
+      <view wx:for="{{item.members}}"  wx:key="*this" class="flo_l" wx:for-item="itemName" style="position:relative;">
+        <image src="{{itemName.avatar}}" wx:if="{{index < 4 ? itemName : '' }}" mode="aspectFit" class="party_image flo_l" style="width: 82rpx;height: 82rpx;margin-bottom: 12rpx;"></image>
+        <image src="../images/tabbars/query.png" mode="aspectFit"  wx:if="{{itemName.is_possible == '1' && index < 4}}" style="width: 42rpx;height: 42rpx;position: absolute;right: 6rpx; top: -2rpx;"></image>
+        <!--<view class="red bold flo_l" style="position: absolute;right: 12rpx; top: -12rpx;border: 2rpx solid red;width: 36rpx;height: 36rpx;border-radius: 50%;text-align: center;line-height: 36rpx;">?</view>-->
+      </view>
+      <view class="flo_r font_32" style="margin-top: 22rpx">{{item.members.length}} 人</view>
+      <view class="clearfloat"></view>
+    </view>
+  </view>
+  <view wx:if="{{hideMessage}}">
+    <image src="/images/tabbars/message.png"  mode="aspectFit" style="width: 100%;height: 400rpx;"></image>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import { service } from '../config.js'
+  import http from '../mixins/http'
+  import base from '../mixins/base'
+
+  export default class List extends wepy.component {
+    mixins = [base, http]
+    props = {
+      list: {
+        type: Object,
+        default: []
+      },
+      hideMessage: {
+        type: String,
+        default: false
+      }
+    }
+    data = {
+    }
+//    computed = {
+//    }
+    methods = {
+      goto(url) {
+        wx.navigateTo({url: url})
+      },
+      toStar(book, index) {
+        // 将要发生的收藏动作
+        const isCollect = Boolean(book && +book.collected)
+        const newType = isCollect ? 0 : 1
+        const newTypeText = newType ? '添加' : '取消'
+        // 收藏本书
+        this.$post({
+          url: service.collect,
+          data: {
+            book_ids: [book.id],
+            type: newType
+          }
+        }, {
+          success: ({code, data}) => {
+            // 重置本书收藏状态
+            if (this.isObject(this.list[index])) {
+              this.list[index].collected = newType
+            }
+            wx.showToast({
+              title: `${newTypeText}收藏！`,
+              icon: 'success',
+              duration: 1000
+            })
+          },
+          fail: ({code, data}) => {
+            // =============================== 调试代码 ===============================
+            // this.book.collected = newType
+            // =============================== 调试代码 ===============================
+            wx.showToast({
+              title: `${newTypeText}收藏失败！`,
+              icon: 'loading',
+              image: '/images/icon/icon-cancel.png',
+              duration: 1000
+            })
+          }
+        })
+      }
+    }
+  }
+</script>
+
+<style type="less">
+@import "../styles/custom/fn.less";
+
+</style>
