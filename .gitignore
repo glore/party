@@ -8,6 +8,7 @@ web
 logs
 *.log
 npm-debug.log*
+package-lock.json
 yarn-debug.log*
 yarn-error.log*
 
@@ -63,3 +64,4 @@ typings/
 # dotenv environment variables file
 .env
 /.idea
+

@@ -1,14 +1,14 @@
 {
-  "name": "wepy-ufutx-library",
+  "name": "wepy-ufutx-party",
   "version": "0.1.0",
-  "description": "ufutx library for ark",
+  "description": "ufutx party for christian",
   "main": "dist/app.js",
   "scripts": {
     "dev": "wepy build --watch",
     "build": "cross-env NODE_ENV=production wepy build --no-cache",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "Ufutx",
   "license": "GPL-3.0",
   "dependencies": {
     "wepy": "^1.7.1",
