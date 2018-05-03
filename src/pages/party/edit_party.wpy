@@ -153,10 +153,11 @@
     onLoad(e) {
 //      let that = this
       this.pickerTime()
-      this.choose()
       if (e.party_id) {
         this.party_id = e.party_id
         this.initPageData(this.party_id)
+      } else {
+        this.choose()
       }
     }
     onShareAppMessage(res) {
@@ -182,12 +183,22 @@
       let time = []
       let duration = []
       let hour = 0
-//      let hour_d = 0
+//      let num = []
       for (let i = 0; i < 48; i++) {
         let str = 0
         str = 0.5 * (i + 1)
         duration[i] = str
       }
+//      for (let i = 0; i < 6; i++) {
+//        let str = 0
+//        str = 4 * (i + 1)
+//        duration[i] = str
+//        hour += 0.5
+//        num.push(hour)
+//      }
+//      num.forEach(function (item) {
+//        duration.push(item)
+//      })
       for (let j = 0; j < 48; j++) {
         let str = ''
         let min = ''
@@ -199,6 +210,8 @@
         }
         if (j < 19) {
           str = '0' + hour + ':' + min
+        } else if (j == 47) {
+          str = '00' + ':' + min
         } else {
           str = hour + ':' + min
         }
@@ -294,6 +307,41 @@
         })
       }
     }
+    openSetting() {
+      let that = this
+      wx.openSetting({
+        success: (res) => {
+          wepy.getLocation({
+            altitude: true,
+            type: 'gcj02',
+            success: function (res) {
+              that.latitude = res.latitude
+              that.longitude = res.longitude
+              that.$apply()
+              wepy.request({
+                url: 'https://apis.map.qq.com/ws/geocoder/v1/',
+                data: {
+                  key: 'DQ3BZ-SWT3U-HUQV7-BBO3U-OU7WS-53FBV',
+                  location: that.latitude + ',' + that.longitude
+                },
+                header: {
+                  'content-type': 'application/json' // 默认值
+                },
+                success: function(res) {
+                  let result = res.data.result
+                  that.address = result.formatted_addresses.recommend
+                  that.$apply()
+                }
+              })
+            },
+            fail: function () {
+            },
+            complete: function () {
+            }
+          })
+        }
+      })
+    }
     choose() {
       let that = this
       wepy.getLocation({
@@ -323,7 +371,16 @@
           })
         },
         fail: function () {
-          // fail
+          wx.showModal({
+            title: '提示',
+            confirmText: '去授权',
+            content: '不授权将无法发起活动哦！',
+            success: (res) => {
+              if (res.confirm) {
+                that.openSetting()
+              }
+            }
+          })
         },
         complete: function () {
           // complete
@@ -370,9 +427,11 @@
       },
       choose() {
         let that = this
+        if (!that.latitude) {
+          that.openSetting()
+        }
         wepy.chooseLocation({
           success: function (res) {
-//            console.log(res,"location")
 //            that.address_detail = res.name
             that.address = res.name
 //            that.address = res.address

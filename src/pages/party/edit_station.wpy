@@ -293,7 +293,7 @@
           success: ({code, data}) => {
             console.log(data.id)
             wx.removeStorage({key: 'statiob_list'})
-            wx.navigateTo({url: '/pages/party/start_party?party_id=' + that.party_id})
+            wx.reLaunch({url: '/pages/party/start_party?party_id=' + that.party_id})
           },
           fail: ({code, data}) => {
             // 失败了什么也不做
