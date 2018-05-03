@@ -1,27 +1,20 @@
-﻿# Ufutx library
+﻿# Ufutx Party 
 
 ## Features
 
-* 图书馆管理
-  - 创建图书馆
-  - 图书分类管理
-  - 图书管理
-  - 成员管理
-  - 借阅管理
+* 友福聚会
 
-* 个人图书馆
-  - 同图书馆
-  - 好友间互借
-
-* 友书同享
-  - 图书免费赠送(但1+3个月必须赠送)
-  - 提供免费图片者可获得友福同享购物券
-
+1. 聚会可保存为模板，用于发布周期性聚会。
+2. 聚会可设置服待岗位，供报名人选择。
+3. 新报名有通知，即时了解报名情况。
+4. 报名时，备注可能参加，方便管理人员。
+5. 报名时，可填写推荐人，方便跟进。
 ....
+
 
 扫码访问小程序:
 
-![友福图书馆](https://library.ufutx.com/imgs/mp_library.jpg)
+![友福聚会](https://party.ufutx.com/imgs/mp_party.jpg)
 
 
 ## Usage
@@ -29,7 +22,7 @@
 ### Start
 
 ``` bash
-git clone git@github.com:glore/library.git
+git clone git@github.com:glore/party.git
 cd library
 npm install wepy-cli -g
 npm install
