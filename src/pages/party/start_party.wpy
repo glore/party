@@ -37,14 +37,15 @@
     </view>
     <view class="member">
       <view wx:for="{{list.members}}"  wx:key="*this" class="flo_l" wx:for-item="itemName" style="position:relative;">
-        <image src="{{itemName.avatar}}" mode="aspectFit" class="party_image flo_l" style="width: 82rpx;height: 82rpx;margin-bottom: 12rpx;"></image>
-        <image src="../../images/tabbars/query.png" mode="aspectFit"  wx:if="{{itemName.is_possible == '1'}}" style="width: 42rpx;height: 42rpx;position: absolute;right: 6rpx; top: -2rpx;"></image>
+        <image src="{{itemName.avatar}}" wx:if="{{index < 4 ? itemName : '' }}" mode="aspectFit" class="party_image flo_l" style="width: 82rpx;height: 82rpx;margin-bottom: 12rpx;"></image>
+        <image src="../../images/tabbars/query.png" mode="aspectFit"  wx:if="{{itemName.is_possible == '1' && index < 4}}" style="width: 42rpx;height: 42rpx;position: absolute;right: 6rpx; top: -2rpx;"></image>
       </view>
+
       <button open-type="share" class="btn flo_l text-center" style="width: 120rpx;height: 120rpx;">
         <image src="../../images/tabbars/addmember.png"   mode="aspectFit" class="addmember" ></image>
       </button>
       <!--<view class="flo_r font_32" style="margin-top: 32rpx">{{members.length}}人</view>-->
-      <view class="weui-cell__ft weui-cell__ft_in-access" style="margin-top: 32rpx" @tap="goto('/pages/party/statistics_party?party_id={{party_id}}&title={{list.title}}')">{{members.length}}人</view>
+      <view class="weui-cell__ft weui-cell__ft_in-access flo_r" style="margin-top: 32rpx;" @tap="goto('/pages/party/statistics_party?party_id={{party_id}}&title={{list.title}}')">{{members.length}}人</view>
       <view class="clearfloat"></view>
     </view>
     <bolck wx:if="{{showmember}}">
